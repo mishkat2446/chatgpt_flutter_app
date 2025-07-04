@@ -1,5 +1,5 @@
 name: chatgpt_flutter_app
-description: "A new Flutter project."
+description: "A simple GPT-4o-powered Flutter chat app."
 publish_to: 'none'
 version: 1.0.0+1
 
@@ -12,7 +12,6 @@ dependencies:
   http: ^0.13.6
   flutter_dotenv: ^5.1.0
   cupertino_icons: ^1.0.8
-  openai: ^1.0.0
 
 dev_dependencies:
   flutter_lints: ^5.0.0
@@ -21,3 +20,8 @@ flutter:
   uses-material-design: true
   assets:
     - .env
+
+  fonts:
+    - family: NotoSansBengali
+      fonts:
+        - asset: assets/fonts/NotoSansBengali-Regular.ttf

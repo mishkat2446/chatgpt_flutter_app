@@ -1,88 +1,203 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:openai/openai.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:flutter/services.dart';
 
-void main() async {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: ".env");
-  runApp(MyApp());
+  runApp(const ChatApp());
 }
 
-class MyApp extends StatelessWidget {
-  final ChatGPT chatGPT = ChatGPT(apiKey: dotenv.env['OPENAI_API_KEY']!);
+class ChatApp extends StatelessWidget {
+  const ChatApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'ChatGPT AI Demo',
-      theme: ThemeData(primarySwatch: Colors.blue),
-      home: ChatPage(chatGPT: chatGPT),
+      title: 'GPT-4o Chat',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData.dark(useMaterial3: true),
+      home: const ChatScreen(),
     );
   }
 }
 
-class ChatPage extends StatefulWidget {
-  final ChatGPT chatGPT;
-  ChatPage({required this.chatGPT});
+class ChatScreen extends StatefulWidget {
+  const ChatScreen({super.key});
 
   @override
-  _ChatPageState createState() => _ChatPageState();
+  State<ChatScreen> createState() => _ChatScreenState();
 }
 
-class _ChatPageState extends State<ChatPage> {
+class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController _controller = TextEditingController();
-  String _response = '';
+  final List<Map<String, String>> _messages = [];
   bool _isLoading = false;
 
-  Future<void> sendMessage(String message) async {
-    setState(() {
-      _isLoading = true;
-      _response = '';
-    });
+  Future<void> _sendMessage(String userInput) async {
+    if (_isLoading || userInput.trim().isEmpty) return;
+
+    final apiKey = dotenv.env['OPENAI_API_KEY'];
+    if (apiKey == null || apiKey.isEmpty) {
+      _addMessage('assistant', '❌ API key পাওয়া যায়নি। .env ফাইলটি চেক করুন।');
+      return;
+    }
+
+    _addMessage('user', userInput);
+    setState(() => _isLoading = true);
 
     try {
-      final res = await widget.chatGPT.sendMessage(
-        message,
-        model: Model.gptTurbo,
+      final messagesForAPI = [
+        {
+          'role': 'system',
+          'content': '''
+You are an empathetic, warm, and helpful AI. 
+Speak naturally, mix Bengali and English as needed. Be human-like, kind, and respectful.
+Respond in a way that makes the user feel emotionally supported and understood.
+          '''
+        },
+        ..._messages.map((m) => {
+              'role': m['role']!,
+              'content': m['text']!,
+            }),
+        {
+          'role': 'user',
+          'content': userInput,
+        }
+      ];
+
+      final response = await http.post(
+        Uri.parse("https://api.openai.com/v1/chat/completions"),
+        headers: {
+          'Authorization': 'Bearer $apiKey',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          'model': 'gpt-4o',
+          'messages': messagesForAPI,
+          'temperature': 0.7,
+          'max_tokens': 2048,
+        }),
       );
 
-      setState(() {
-        _response = res.choices.first.message.content;
-      });
+      if (response.statusCode == 200) {
+        final data = jsonDecode(utf8.decode(response.bodyBytes));
+        final reply = data['choices'][0]['message']['content'].trim();
+        _addMessage('assistant', reply);
+      } else {
+        _addMessage('assistant', '❌ ত্রুটি: ${response.statusCode}\n${response.body}');
+      }
     } catch (e) {
-      setState(() {
-        _response = "Error: $e";
-      });
+      _addMessage('assistant', '❌ ত্রুটি: $e');
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      setState(() => _isLoading = false);
     }
+  }
+
+  void _addMessage(String role, String text) {
+    setState(() {
+      _messages.add({'role': role, 'text': text});
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('ChatGPT AI Demo')),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            TextField(
-              controller: _controller,
-              decoration: InputDecoration(hintText: 'Type your message here'),
+      appBar: AppBar(title: const Text('🤖 GPT-4o Assistant')),
+      body: Column(
+        children: [
+          Expanded(
+            child: ListView.builder(
+              padding: const EdgeInsets.all(12),
+              itemCount: _messages.length,
+              itemBuilder: (_, index) {
+                final m = _messages[index];
+                final isUser = m['role'] == 'user';
+
+                return Align(
+                  alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
+                  child: GestureDetector(
+                    onLongPress: () {
+                      Clipboard.setData(ClipboardData(text: m['text'] ?? ''));
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('✅ কপি করা হয়েছে!')),
+                      );
+                    },
+                    child: Container(
+                      margin: const EdgeInsets.symmetric(vertical: 4),
+                      padding: const EdgeInsets.all(12),
+                      constraints: const BoxConstraints(maxWidth: 300),
+                      decoration: BoxDecoration(
+                        color: isUser ? const Color(0xFF1E3A8A) : Colors.grey[800],
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: SelectableText(
+                        m['text'] ?? '',
+                        style: const TextStyle(
+                          fontFamily: 'NotoSansBengali',
+                          fontSize: 15,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              },
             ),
-            SizedBox(height: 10),
-            ElevatedButton(
-              onPressed: _isLoading ? null : () => sendMessage(_controller.text),
-              child: Text('Send'),
+          ),
+          if (_isLoading)
+            const Padding(
+              padding: EdgeInsets.all(10),
+              child: CircularProgressIndicator(),
             ),
-            SizedBox(height: 20),
-            _isLoading
-                ? CircularProgressIndicator()
-                : Expanded(child: SingleChildScrollView(child: Text(_response))),
-          ],
-        ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 10),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.grey[900],
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: TextField(
+                      controller: _controller,
+                      minLines: 1,
+                      maxLines: 6,
+                      keyboardType: TextInputType.multiline,
+                      style: const TextStyle(color: Colors.white),
+                      cursorColor: Colors.white,
+                      textInputAction: TextInputAction.newline,
+                      onSubmitted: (_) {},
+                      decoration: const InputDecoration(
+                        hintText: 'আপনার প্রশ্ন লিখুন...',
+                        hintStyle: TextStyle(color: Colors.white70),
+                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        border: InputBorder.none,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.teal,
+                    shape: BoxShape.circle,
+                  ),
+                  child: IconButton(
+                    icon: const Icon(Icons.send, color: Colors.white),
+                    onPressed: () {
+                      _sendMessage(_controller.text);
+                      _controller.clear();
+                    },
+                  ),
+                )
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
