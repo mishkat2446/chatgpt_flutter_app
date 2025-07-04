@@ -1,0 +1,36 @@
+name: Flutter Build
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build Flutter APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v3
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.19.6' # আপনার Flutter ভার্সন
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Create .env file from Secret
+        run: echo "OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}" > .env
+
+      - name: Build APK with dart-define
+        run: flutter build apk --release --dart-define=OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: flutter-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
