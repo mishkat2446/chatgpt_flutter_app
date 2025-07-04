@@ -1,4 +1,4 @@
-name: Build Flutter APK with GPT-4o
+name: 📱 Build GPT-4o Chat Flutter APK
 
 on:
   push:
@@ -7,45 +7,42 @@ on:
 
 jobs:
   build:
+    name: 🔨 Build APK
     runs-on: ubuntu-latest
 
     steps:
-      - name: ✅ Checkout source code
+      - name: ✅ Checkout Source
         uses: actions/checkout@v4
 
-      - name: 📦 Set up Flutter
+      - name: ⚙️ Set up Flutter
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.32.5'
 
-      - name: 📚 Install Flutter dependencies
+      - name: 📦 Install Dependencies
         run: flutter pub get
 
-      - name: 🛠️ Create .env file from GitHub Secret
+      - name: 🔐 Create .env from GitHub Secrets
         run: |
           echo "OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}" > .env
 
-      - name: ✅ Validate .env file and API key
+      - name: ✅ Validate .env File and API Key
         run: |
-          if [ -f .env ]; then
-            echo "✅ .env file created."
-            if grep -q "OPENAI_API_KEY=" .env; then
-              echo "✅ API key found in .env."
-            else
-              echo "❌ API key not found in .env!"
-              exit 1
-            fi
+          if grep -q "OPENAI_API_KEY=" .env; then
+            echo "✅ API key configured."
           else
-            echo "❌ .env file missing!"
+            echo "❌ API key missing in .env"
             exit 1
           fi
 
-      - name: 🚀 Build release APK
+      - name: 🧪 Analyze Project (Optional Linting)
+        run: flutter analyze
+
+      - name: 🚀 Build Release APK
         run: flutter build apk --release --android-skip-build-dependency-validation
 
-      - name: 📤 Upload APK to GitHub Artifacts
+      - name: 📤 Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: gpt4o-chat-app-apk
-          path: build/app/outputs/flutter-apk/app-release.apk
-
+          name: gpt4o-chat-app-${{ github.run_number }}-apk
+          path: build/app/outputs/flutter-apk/app-release.apkd

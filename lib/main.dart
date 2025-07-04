@@ -1,3 +1,4 @@
+// lib/main.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
@@ -53,9 +54,10 @@ class _ChatScreenState extends State<ChatScreen> {
         {
           'role': 'system',
           'content': '''
-You are an empathetic, warm, and helpful AI. 
-Speak naturally, mix Bengali and English as needed. Be human-like, kind, and respectful.
-Respond in a way that makes the user feel emotionally supported and understood.
+You are an empathetic, warm, multilingual and friendly assistant.
+Your primary languages are Bengali and English. Respond like a thoughtful friend.
+Use simple, friendly, and heartwarming language that encourages the user.
+Respond politely even if the question is sensitive or repeated.
           '''
         },
         ..._messages.map((m) => {
@@ -77,7 +79,7 @@ Respond in a way that makes the user feel emotionally supported and understood.
         body: jsonEncode({
           'model': 'gpt-4o',
           'messages': messagesForAPI,
-          'temperature': 0.7,
+          'temperature': 0.75,
           'max_tokens': 2048,
         }),
       );
@@ -87,10 +89,11 @@ Respond in a way that makes the user feel emotionally supported and understood.
         final reply = data['choices'][0]['message']['content'].trim();
         _addMessage('assistant', reply);
       } else {
-        _addMessage('assistant', '❌ ত্রুটি: ${response.statusCode}\n${response.body}');
+        final error = jsonDecode(response.body);
+        _addMessage('assistant', '❌ ত্রুটি: ${error['error']['message'] ?? response.body}');
       }
     } catch (e) {
-      _addMessage('assistant', '❌ ত্রুটি: $e');
+      _addMessage('assistant', '❌ সংযোগ ত্রুটি: $e');
     } finally {
       setState(() => _isLoading = false);
     }
@@ -182,7 +185,7 @@ Respond in a way that makes the user feel emotionally supported and understood.
                 ),
                 const SizedBox(width: 6),
                 Container(
-                  decoration: BoxDecoration(
+                  decoration: const BoxDecoration(
                     color: Colors.teal,
                     shape: BoxShape.circle,
                   ),

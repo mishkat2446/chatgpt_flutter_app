@@ -14,10 +14,12 @@ dependencies:
   cupertino_icons: ^1.0.8
 
 dev_dependencies:
-  flutter_lints: ^5.0.0
+  flutter_lints: ^3.0.1
 
 flutter:
   uses-material-design: true
+
+  # ✅ Include assets like .env (though not required unless read as asset)
   assets:
     - .env
 

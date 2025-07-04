@@ -1,46 +1,51 @@
-# Miscellaneous
+# ❌ Common Binary/Object files
 *.class
-*.log
 *.pyc
+*.o
+*.so
 *.swp
-.DS_Store
-.atom/
-.build/
-.buildlog/
-.history
-.svn/
-.swiftpm/
-migrate_working_dir/
+*.log
 
-# IntelliJ related
+# ❌ macOS system files
+.DS_Store
+
+# ❌ Editor settings
+.idea/
 *.iml
 *.ipr
 *.iws
-.idea/
+.vscode/
+.atom/
+.history
+.svn/
+.swiftpm/
 
-# The .vscode folder contains launch configuration and tasks you configure in
-# VS Code which you may wish to be included in version control, so this line
-# is commented out by default.
-#.vscode/
-
-# Flutter/Dart/Pub related
-**/doc/api/
-**/ios/Flutter/.last_build_id
+# ❌ Dart/Flutter build & cache files
 .dart_tool/
 .flutter-plugins
 .flutter-plugins-dependencies
+.packages
 .pub-cache/
 .pub/
-/build/
+.build/
+build/
+.migrate_working_dir/
+
+# ❌ iOS & Android build artifacts
+ios/Flutter/.last_build_id
+android/app/debug/
+android/app/profile/
+android/app/release/
+
+# ❌ Documentation build
+doc/api/
+
+# ❌ Environment/configuration
 .env
 
-# Symbolication related
+# ❌ Obfuscation & symbolication
 app.*.symbols
-
-# Obfuscation related
 app.*.map.json
 
-# Android Studio will place build artifacts here
-/android/app/debug
-/android/app/profile
-/android/app/release
+# ✅ Optional: lock files (uncomment if you're using pubspec.lock tracking strategy)
+# pubspec.lock
